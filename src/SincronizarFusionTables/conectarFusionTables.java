@@ -117,6 +117,7 @@ public class conectarFusionTables {
             //Cuando salgo, cojo uno
             pendienteProcesar = insertCacheLista.poll();
           } catch (InterruptedException ex) {
+              System.err.println(ex.getMessage());
             Logger.getLogger(conectarFusionTables.class.getName()).log(Level.SEVERE, null, ex);
           }
           } else if (pendienteProcesar == null) {
@@ -235,7 +236,7 @@ public class conectarFusionTables {
    * @return El archivo JSON procesado devuelto por la petición
    */
   private static Sqlresponse sqlStatic(String query) {
-    System.err.println("Tengo que mandar" + query);
+    System.err.println("Tengo Intento mandar");
     Sqlresponse res = null;
     try {
       Sql sql = fusiontables.query().sql(query);
@@ -244,6 +245,7 @@ public class conectarFusionTables {
       System.err.println(res.toString());
 
     } catch (IOException ex) {
+      System.err.println(ex.getMessage());
       //Logger.getLogger(conectarFusionTables.class.getName()).log(Level.SEVERE, null, ex);
       return null;
     }
@@ -297,9 +299,9 @@ public class conectarFusionTables {
         peticion = peticion + campos.get(i) + "=\'" + valores.get(i) + "\'";
       }
 
-      System.err.println(peticion);
+      //System.err.println(peticion);
       Sqlresponse s = this.sql(peticion);
-      System.err.println(s.size());
+      //System.err.println(s.size());
 
       //Si el tamaño del MAP es 2, sólo se han devuelto el identificador de la consulta y las columnas, NO los valores.
       //Por tanto, no hay valores. Hace un s.getRows().isEmpty() no funciona.

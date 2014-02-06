@@ -18,7 +18,6 @@ package SincronizarFusionTables;
 
 import Entorno.Depuracion.Debug;
 import Entorno.Configuracion.Config;
-import java.util.Timer;
 import java.util.TimerTask;
 
 /**
@@ -31,12 +30,12 @@ public class ActualizadorFT {
   Config _c = new Config();
   Debug _d = new Debug();
   //Tarea temporizada
-  TimerTask tt_PasoPorDias;
+  TimerTask temporizador;
 
   public ActualizadorFT() {
     
     
-    this.tt_PasoPorDias = new TimerTask() {
+    this.temporizador = new TimerTask() {
       @Override
       public void run() {
         PasosPorDia p = new PasosPorDia();
@@ -46,12 +45,22 @@ public class ActualizadorFT {
         PasosPorHoras h = new PasosPorHoras();
         h.check = true;
         h.calcular();
+        
+        TrazasPorHoras t = new TrazasPorHoras();
+        t.check = true;
+        t.calcular();
       }
     };
   }
 
     public void start() {
     
+      TrazasPorHoras t = new TrazasPorHoras("2012-10-31 11:15:40");
+      t.check = false; 
+      t.calcular();
+      
+      /*
+      
      if(_c.getBool("ft.primera_vez")){
        //PasosPorDia p = new PasosPorDia("2012-10-31 11:15:40");
        //p.check = false; 
@@ -65,8 +74,8 @@ public class ActualizadorFT {
      }
       
     Timer timer = new Timer("ActualizadorFusionTable", true);
-    timer.scheduleAtFixedRate(tt_PasoPorDias, _c.getLong("ft.periodo_actualizacion"), _c.getLong("ft.periodo_actualizacion"));
+    timer.scheduleAtFixedRate(temporizador, _c.getLong("ft.periodo_actualizacion"), _c.getLong("ft.periodo_actualizacion"));
 
-    
+    */
   }
 }

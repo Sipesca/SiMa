@@ -50,21 +50,21 @@ public class SiMa {
   public static void main(String[] args) throws IOException {
     tg = Thread.currentThread().getThreadGroup();
 
-    _actualizarDB = new ActualizadorDBLocal(_c.get("data.ultimo"));
+    //_actualizarDB = new ActualizadorDBLocal(_c.get("data.ultimo"));
     _actualizarFT = new ActualizadorFT();
 
     _actualizarFT.start();
-    _actualizarDB.start();
+    //_actualizarDB.start();
 
     //TwitterAgente _t = new TwitterAgente();
     //_t.publicar("Seguímos haciendo pruebas, ahora con la codificación de caractéres. Ñadú. Perdón por las molestias.");
 
-      try {
-      //_actualizarFT.join();
-      _actualizarDB.join();
-      } catch (InterruptedException ex) {
-      Logger.getLogger(SiMa.class.getName()).log(Level.SEVERE, null, ex);
-      }
+//      try {
+//      //_actualizarFT.join();
+//      _actualizarDB.join();
+//      } catch (InterruptedException ex) {
+//      Logger.getLogger(SiMa.class.getName()).log(Level.SEVERE, null, ex);
+//      }
     
   }
 }

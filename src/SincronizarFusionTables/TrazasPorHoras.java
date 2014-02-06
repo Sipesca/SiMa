@@ -48,15 +48,11 @@ public class TrazasPorHoras {
   //ResultSet rs = st.executeQuery("CALL agrupaPasosPorIntervalosNodo('2013-01-07 00:00:00','2013-06-02 00:00:00'," + 60 + ",'" + idNodo + "')");
   public TrazasPorHoras(String fecha) {
     this.fecha = fecha;
-    campos.add("Intervalo");
-    campos.add("idNodo");
-    campos.add("Total");
-    campos.add("Predicho");
-
-    //Añadir campos de información del nodo
-    campos.add("latitud");
-    campos.add("longitud");
-    campos.add("nombre");
+    campos.add("Fecha");
+    campos.add("Origen");
+    campos.add("Destino");
+    campos.add("total");
+    campos.add("Diferencia");
     campos.add("poligono");
   }
   
@@ -74,7 +70,7 @@ public TrazasPorHoras() {
   
   
   public String setFechaUltima(){
-    Sqlresponse r = cFT.select(TABLAID,"Intervalo","","ORDER BY \'Intervalo\' DESC LIMIT 1" );  
+    Sqlresponse r = cFT.select(TABLAID,"Fecha","","ORDER BY \'Fecha\' DESC LIMIT 1" );  
     this.fecha = (String) r.getRows().get(0).get(0);
     return fecha;
   }
@@ -83,8 +79,11 @@ public TrazasPorHoras() {
     Conectar conectar = new Conectar();
     try {
       Statement st = conectar.crearSt();
-      System.out.println("CALL agrupaPasosPorIntervalosNodosSeparados('" + fecha + "','" + _d.sdf.format(Calendar.getInstance().getTime()) + "','" + 60 + "')");
-      rs = st.executeQuery("CALL agrupaPasosPorIntervalosNodosSeparados('" + fecha + "','" + _d.sdf.format(Calendar.getInstance().getTime()) + "','" + 60 + "')");
+      //System.out.println("CALL agrupaPasosPorIntervalosNodosSeparados('" + fecha + "','" + _d.sdf.format(Calendar.getInstance().getTime()) + "','" + 60 + "')");
+      //rs = st.executeQuery("CALL localizaTrazasNodos2('" + fecha + "','" + _d.sdf.format(Calendar.getInstance().getTime()) + "','" + 60 + "')");
+      
+//Depuración del método
+      rs = st.executeQuery("CALL localizaTrazasNodos2('" + "2012-12-10 00:00:00" + "','" + "2012-12-12 00:00:00"  + "','" + 60 + "')");
 
       List<String> valores = new ArrayList<>();
 
@@ -95,8 +94,11 @@ public TrazasPorHoras() {
         valores.add(rs.getString(3)); //Destino
         valores.add(rs.getString(4)); //total
         valores.add(rs.getString(5)); //Diferencia
-        valores.add(rs.getString(6)); //nombre
-        valores.add(rs.getString(7)); //poligono
+        
+        //Aquí empieza lo bueno
+        String poligono = "<LineString>  <coordinates>   "+rs.getString(7)+", "+rs.getString(6)+", 0.     "+rs.getString(9)+", "+rs.getString(8)+", 0.  </coordinates> </LineString>";
+   
+        valores.add(poligono); //nombre
         
         cFT.insert(TABLAID, campos, valores, check);
         valores.clear();
