@@ -54,6 +54,7 @@ public class TrazasPorHoras {
     campos.add("total");
     campos.add("Diferencia");
     campos.add("poligono");
+    campos.add("distancia");
   }
   
 public TrazasPorHoras() {
@@ -65,6 +66,7 @@ public TrazasPorHoras() {
     //Añadir campos de información del nodo
     campos.add("Diferencia");
     campos.add("poligono");
+    campos.add("distancia");
   }
   
   
@@ -83,7 +85,7 @@ public TrazasPorHoras() {
       //rs = st.executeQuery("CALL localizaTrazasNodos2('" + fecha + "','" + _d.sdf.format(Calendar.getInstance().getTime()) + "','" + 60 + "')");
       
 //Depuración del método
-      rs = st.executeQuery("CALL localizaTrazasNodos2('" + "2012-12-10 00:00:00" + "','" + "2012-12-12 00:00:00"  + "','" + 60 + "')");
+      rs = st.executeQuery("CALL localizaTrazasNodos2('" + "2010-12-10 00:00:00" + "','" + "2014-12-12 00:00:00"  + "','" + 60 + "')");
 
       List<String> valores = new ArrayList<>();
 
@@ -95,10 +97,28 @@ public TrazasPorHoras() {
         valores.add(rs.getString(4)); //total
         valores.add(rs.getString(5)); //Diferencia
         
+        
+        
         //Aquí empieza lo bueno
         String poligono = "<LineString>  <coordinates>   "+rs.getString(7)+", "+rs.getString(6)+", 0.     "+rs.getString(9)+", "+rs.getString(8)+", 0.  </coordinates> </LineString>";
    
         valores.add(poligono); //nombre
+        
+        double earthRadius = 3958.75;
+        double dLat = Math.toRadians(rs.getDouble(8)-rs.getDouble(6));
+        double dLng = Math.toRadians(rs.getDouble(9)-rs.getDouble(7));
+        double a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+               Math.cos(Math.toRadians(rs.getDouble(6))) * Math.cos(Math.toRadians(rs.getDouble(8))) *
+               Math.sin(dLng/2) * Math.sin(dLng/2);
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        double dist = earthRadius * c;
+
+        int meterConversion = 1609;
+
+        float t = (float) dist * meterConversion;
+        
+        valores.add(Float.toString(t));
+        
         
         cFT.insert(TABLAID, campos, valores, check);
         valores.clear();
