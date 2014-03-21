@@ -5,6 +5,8 @@ package Entorno.Conectar;
 
 import java.sql.*;
 import Entorno.Configuracion.Config;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 
 /**
@@ -30,7 +32,7 @@ public class Conectar {
             conn = DriverManager.getConnection("jdbc:mysql://"+host+"/"+base,usuario, pass);//el tercer parametro es para el password
 
         } catch (Exception e) {
-            System.err.println("E>Error instanciando conexión a la base de datos");
+          Logger.getGlobal().log(Level.SEVERE,"Error instanciando conexión a la base de datos", e);
         }
     }
 

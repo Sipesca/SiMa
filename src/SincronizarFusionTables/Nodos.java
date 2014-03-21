@@ -19,12 +19,10 @@ package SincronizarFusionTables;
 import Entorno.Configuracion.Config;
 import Entorno.Depuracion.Debug;
 import Entorno.Conectar.Conectar;
-import com.google.api.services.fusiontables.model.Sqlresponse;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -34,100 +32,62 @@ import java.util.logging.Logger;
  *
  * @author Antonio Fernández Ares (antares.es@gmail.com)
  */
-public class TrazasPorHoras {
+public class Nodos {
 
   private Config _c = new Config();
   private Debug _d = new Debug();
   private conectarFusionTables cFT = new conectarFusionTables();
   private String fecha;
   private ResultSet rs;
-  private final String TABLAID = _c.get("ft.TRAZASPORHORAS.ID");
+  private final String TABLAID = _c.get("ft.NODOS.ID");
   private final List<String> campos = new ArrayList<>();
-  public boolean check = false;
+  public boolean check = true; //En el caso de los nodos, actualizamos SIEMPRE
 
-  //ResultSet rs = st.executeQuery("CALL agrupaPasosPorIntervalosNodo('2013-01-07 00:00:00','2013-06-02 00:00:00'," + 60 + ",'" + idNodo + "')");
-  public TrazasPorHoras(String fecha) {
-    this.fecha = fecha;
-    campos.add("Fecha");
-    campos.add("Origen");
-    campos.add("Destino");
-    campos.add("total");
-    campos.add("Diferencia");
+  public Nodos() {
+    campos.add("idNodo");
+    campos.add("latitud");
+    campos.add("longitud");
+    campos.add("nombre");
     campos.add("poligono");
-    campos.add("distancia");
-  }
-  
-public TrazasPorHoras() {
-    campos.add("Fecha");
-    campos.add("Origen");
-    campos.add("Destino");
-    this.setFechaUltima();
-    campos.add("total");
-    //Añadir campos de información del nodo
-    campos.add("Diferencia");
-    campos.add("poligono");
-    campos.add("distancia");
-  }
-  
-  
-  
-  public String setFechaUltima(){
-    Sqlresponse r = cFT.select(TABLAID,"Fecha","","ORDER BY \'Fecha\' DESC LIMIT 1" );  
-    this.fecha = (String) r.getRows().get(0).get(0);
-    return fecha;
+    campos.add("tipo");
   }
 
   public boolean calcular() {
     Conectar conectar = new Conectar();
     try {
       Statement st = conectar.crearSt();
-      //System.out.println("CALL agrupaPasosPorIntervalosNodosSeparados('" + fecha + "','" + _d.sdf.format(Calendar.getInstance().getTime()) + "','" + 60 + "')");
-      //rs = st.executeQuery("CALL localizaTrazasNodos2('" + fecha + "','" + _d.sdf.format(Calendar.getInstance().getTime()) + "','" + 60 + "')");
-      
-//Depuración del método
-      rs = st.executeQuery("CALL localizaTrazasNodos2('" + "2010-12-10 00:00:00" + "','" + "2014-12-12 00:00:00"  + "','" + 60 + "')");
+      rs = st.executeQuery("select * from nodo");
 
       List<String> valores = new ArrayList<>();
 
       while (rs.next()) {
         //System.err.println("->" + rs.getString(1) + " " + rs.getString(2) + " " + rs.getString(3));
-        valores.add(rs.getString(1)); //Fecha
-        valores.add(rs.getString(2)); //Origen
-        valores.add(rs.getString(3)); //Destino
-        valores.add(rs.getString(4)); //total
-        valores.add(rs.getString(5)); //Diferencia
+        valores.add(rs.getString(1)); //idNodo
+        valores.add(rs.getString(2)); //latitud
+        valores.add(rs.getString(3)); //longitud
+        valores.add(rs.getString(4)); //nombre
+        valores.add(rs.getString(5)); //poligono
         
-        
-        
-        //Aquí empieza lo bueno
-        String poligono = "<LineString>  <coordinates>   "+rs.getString(7)+", "+rs.getString(6)+", 0.     "+rs.getString(9)+", "+rs.getString(8)+", 0.  </coordinates> </LineString>";
-   
-        valores.add(poligono); //nombre
-        
-        double earthRadius = 3958.75;
-        double dLat = Math.toRadians(rs.getDouble(8)-rs.getDouble(6));
-        double dLng = Math.toRadians(rs.getDouble(9)-rs.getDouble(7));
-        double a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-               Math.cos(Math.toRadians(rs.getDouble(6))) * Math.cos(Math.toRadians(rs.getDouble(8))) *
-               Math.sin(dLng/2) * Math.sin(dLng/2);
-        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        double dist = earthRadius * c;
+        if(rs.getString("nombre").toLowerCase().contains("wifi")){
+          valores.add("Wifi");
+        }else if(rs.getString("nombre").toLowerCase().contains("wi-fi")){
+          valores.add("Wifi");
+        }else{
+          valores.add("Bluetooth");
+        }
 
-        int meterConversion = 1609;
-
-        float t = (float) dist * meterConversion;
-        
-        valores.add(Float.toString(t));
-        
-        
-        cFT.insert(TABLAID, campos, valores, check);
+        cFT.insert(TABLAID, campos, valores, check, 1);
+        //Los nodos son especiales, dado que incorporan mucha más información, por lo que es recomendables no usar el
+        //mecanismo de caché ya que se corre el riesgo de desbordar el tamaño de la query.
+        //Es por ello, que forzamos la sincronización despúes de cada insercción
+        cFT.forzarSync();
         valores.clear();
       }
-      
-       cFT.forzarSync();
-       cFT.esperarSubida();
+
+      cFT.forzarSync();
+      cFT.esperarSubida();
     } catch (SQLException ex) {
-      Logger.getLogger(TrazasPorHoras.class.getName()).log(Level.SEVERE, null, ex);
+      Logger.getGlobal().log(Level.SEVERE, null, ex);
     }
 
 

@@ -26,6 +26,8 @@ import com.sun.jersey.api.client.UniformInterfaceException;
 import com.sun.jersey.api.client.WebResource;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.net.ssl.*;
 import javax.ws.rs.core.MultivaluedMap;
 import org.json.simple.parser.JSONParser;
@@ -99,7 +101,9 @@ public class ClienteNodos {
 
     public void procesarDatos(String datos) throws SQLException {
         //Preprocesamos los datos, para darle un nombre al array:
-        
+      
+      nodos.clear();
+      
         datos = "{\"nodos\":" + datos + "}";
         
         JSONParser parser = new JSONParser();
@@ -141,7 +145,7 @@ public class ClienteNodos {
                 
             }
         } catch (Exception e) {
-            System.err.println(e.getMessage());
+            Logger.getGlobal().log(Level.SEVERE,"Error en el procesamiento de los datos.", e);
         }
         
         syncDB();
@@ -205,7 +209,7 @@ public class ClienteNodos {
             st.executeUpdate("INSERT INTO nodo (idNodo, nombre, latitud, longitud, poligono) VALUES" + cache + "ON DUPLICATE KEY UPDATE nombre=VALUES(nombre), latitud=VALUES(latitud), longitud=VALUES(longitud), poligono=VALUES(poligono); ");
             
         } catch (SQLException ex) {
-            System.err.println(ex.getMessage());
+            Logger.getGlobal().log(Level.SEVERE,"Error en la actualización con la DB." + ex.getMessage() , ex);
 
         }
         cache_size = 0;

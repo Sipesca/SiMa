@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Clase manejadora de la configuración de la aplicación
@@ -31,7 +33,7 @@ public class Config {
             File fichero = new File(System.getProperty("user.home") + "/" + _c_global.getProperty("directorio_configuracion") + "/config.properties");
             _c_local.load(new FileInputStream(fichero));
         } catch (Exception ex) {
-            System.err.println("No se ha podido cargar el fichero de Configuración");
+          Logger.getGlobal().log(Level.SEVERE,"no se ha podido cargar el fichero de Configuración", ex);
         }
     }
 
@@ -85,7 +87,7 @@ public class Config {
             _c_local.setProperty(key, valor);
             _c_local.store(new FileOutputStream(System.getProperty("user.home") + "/" + _c_global.getProperty("directorio_configuracion") + "/config.properties"), null);
         } catch (Exception ex) {
-            System.err.println("No se ha podido cargar el fichero de Configuración");
+            Logger.getGlobal().log(Level.SEVERE,"No se ha podido cargar el fichero de configuración", ex);
         }
 
     }

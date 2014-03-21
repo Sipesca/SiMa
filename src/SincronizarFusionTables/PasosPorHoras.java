@@ -54,9 +54,9 @@ public class PasosPorHoras {
     campos.add("Predicho");
 
     //Añadir campos de información del nodo
-    campos.add("latitud");
-    campos.add("longitud");
-    campos.add("nombre");
+    //campos.add("latitud");
+    //campos.add("longitud");
+    //campos.add("nombre");
     campos.add("poligono");
   }
   
@@ -67,9 +67,9 @@ public PasosPorHoras() {
     this.setFechaUltima();
     campos.add("Predicho");
     //Añadir campos de información del nodo
-    campos.add("latitud");
-    campos.add("longitud");
-    campos.add("nombre");
+    //campos.add("latitud");
+    //campos.add("longitud");
+    //campos.add("nombre");
     campos.add("poligono");
   }
   
@@ -81,34 +81,50 @@ public PasosPorHoras() {
     return fecha;
   }
 
-  public boolean calcular() {
+    public boolean calcular() {
     Conectar conectar = new Conectar();
     try {
       Statement st = conectar.crearSt();
-      System.out.println("CALL agrupaPasosPorIntervalosNodosSeparados('" + fecha + "','" + _d.sdf.format(Calendar.getInstance().getTime()) + "','" + 60 + "')");
+      
+      Logger.getGlobal().log(Level.INFO, "Calculando pasos en DB LOCAL");
+      
+      //System.out.println("CALL agrupaPasosPorIntervalosNodosSeparados('" + fecha + "','" + _d.sdf.format(Calendar.getInstance().getTime()) + "','" + 60 + "')");
       rs = st.executeQuery("CALL agrupaPasosPorIntervalosNodosSeparados('" + fecha + "','" + _d.sdf.format(Calendar.getInstance().getTime()) + "','" + 60 + "')");
 
+      Logger.getGlobal().log(Level.INFO, "Calculado pasos en DB LOCAL: OK");
+      
       List<String> valores = new ArrayList<>();
 
+      Logger.getGlobal().log(Level.INFO, "Subiendo información a la Nube");
+      
       while (rs.next()) {
+        //Logger.getGlobal().log(Level.INFO, "Procesando siguiente elemento a subir");
         //System.err.println("->" + rs.getString(1) + " " + rs.getString(2) + " " + rs.getString(3));
         valores.add(rs.getString(1)); //Intervalo
         valores.add(rs.getString(2)); //idNodo
         valores.add(rs.getString(3)); //Total
         valores.add(""); //El valor predicho Aquí tendríamos que lanzar el predictor y esas cosas :)
-        valores.add(rs.getString(4)); //latitud
-        valores.add(rs.getString(5)); //longitud
-        valores.add(rs.getString(6)); //nombre
+        //valores.add(rs.getString(4)); //latitud
+        //valores.add(rs.getString(5)); //longitud
+        //valores.add(rs.getString(6)); //nombre
         valores.add(rs.getString(7)); //poligono
         
-        cFT.insert(TABLAID, campos, valores, check);
+        cFT.insert(TABLAID, campos, valores, check,2);
         valores.clear();
       }
       
+      Logger.getGlobal().log(Level.INFO, "Todos los valores procesados.");
+      
        cFT.forzarSync();
+       
+       Logger.getGlobal().log(Level.INFO, "Esperando al envío y confirmación de los valores en la nube.");
+       
        cFT.esperarSubida();
+       
+       Logger.getGlobal().log(Level.INFO, "Todos los valores subidos a la nube.");
+       
     } catch (SQLException ex) {
-      Logger.getLogger(PasosPorHoras.class.getName()).log(Level.SEVERE, null, ex);
+      Logger.getGlobal().log(Level.SEVERE, "Fallo en cálculo de los pasos. " + ex.getMessage(), ex);
     }
 
 

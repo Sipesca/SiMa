@@ -82,10 +82,10 @@ public TrazasPorHoras() {
     try {
       Statement st = conectar.crearSt();
       //System.out.println("CALL agrupaPasosPorIntervalosNodosSeparados('" + fecha + "','" + _d.sdf.format(Calendar.getInstance().getTime()) + "','" + 60 + "')");
-      //rs = st.executeQuery("CALL localizaTrazasNodos2('" + fecha + "','" + _d.sdf.format(Calendar.getInstance().getTime()) + "','" + 60 + "')");
+      rs = st.executeQuery("CALL localizaTrazasNodos2('" + fecha + "','" + _d.sdf.format(Calendar.getInstance().getTime()) + "','" + 60 + "')");
       
 //Depuración del método
-      rs = st.executeQuery("CALL localizaTrazasNodos2('" + "2010-12-10 00:00:00" + "','" + "2014-12-12 00:00:00"  + "','" + 60 + "')");
+      //rs = st.executeQuery("CALL localizaTrazasNodos2('" + "2010-12-10 00:00:00" + "','" + "2014-12-12 00:00:00"  + "','" + 60 + "')");
 
       List<String> valores = new ArrayList<>();
 
@@ -127,7 +127,7 @@ public TrazasPorHoras() {
        cFT.forzarSync();
        cFT.esperarSubida();
     } catch (SQLException ex) {
-      Logger.getLogger(TrazasPorHoras.class.getName()).log(Level.SEVERE, null, ex);
+      Logger.getGlobal().log(Level.SEVERE, null, ex);
     }
 
 

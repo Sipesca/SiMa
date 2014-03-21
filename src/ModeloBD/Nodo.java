@@ -19,7 +19,6 @@ public class Nodo {
      * @Override
      */
     public String toString(){
-        System.err.println("idNodo:"+idNodo+ "...");
         return nombre;
     }
 }

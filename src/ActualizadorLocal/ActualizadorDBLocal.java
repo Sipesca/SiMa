@@ -22,6 +22,7 @@ import ActualizadorLocal.Clientes.ClientePasos;
 import Entorno.Conectar.Conectar;
 import Entorno.Configuracion.Config;
 import Entorno.Depuracion.Debug;
+import Entorno.Estadisticas.Estadisticas;
 import java.util.Date;
 import java.sql.SQLException;
 import java.text.ParseException;
@@ -51,7 +52,7 @@ public class ActualizadorDBLocal extends Thread {
     static int NUMERO_DIAS_PETICION = 2;
     static int NUMERO_MINUTOS_PETICION = 60 * 24;
     static double FACTOR_TIEMPO_ESPERA = 1.25;
-    long TIEMPO_ACTUALIZACIONES_MS = 1000 * 60 * 30;
+    long TIEMPO_ACTUALIZACIONES_MS = 1000 * 60 * 10;
     //Variable de conexión (para procesador síncrono)
     static Conectar conexion;
     //Variables para medida de tiempo
@@ -119,13 +120,15 @@ public class ActualizadorDBLocal extends Thread {
      */
     public static void actualizarNodos() {
         try {
-            _d.primeOUT("Nodos", "Actualizando");
+          Logger.getGlobal().log(Level.INFO,"Actualizando nodos.");
+            
             clientNo = new ClienteNodos(conexion);
             response = clientNo.get_Nodos(String.class);
             clientNo.procesarDatos(response.toString());
-            _d.primeOUT("Nodos", "Número de nodos: " + clientNo.getHowManyNodos());
+            Logger.getGlobal().log(Level.INFO,"Número de nodos actuales: " + clientNo.getHowManyNodos());
         } catch (SQLException ex) {
-            _d.primeERR("Error durmiendo hebra principal");
+          Logger.getGlobal().log(Level.SEVERE,"Error durante la actualización de nodos.",ex);
+            
         }
     }
 
@@ -135,34 +138,33 @@ public class ActualizadorDBLocal extends Thread {
      * @throws SQLException
      */
     public static void actualizarDispositivos(int i) throws SQLException {
-        String label = "[" + _d.sdf.format(startDate) + "][" + _d.sdf.format(endDate) + "][" + clientNo.getNodo(i) + "][Dispositivos]";
+        String label = _d.sdf.format(startDate) + " a " + _d.sdf.format(endDate) + " para " + clientNo.getNodo(i) + ".";
+
         try {
             contadorRepeticion = 0;
-            _d.primeOUT(label, "Descargando");
+            Logger.getGlobal().fine("Descargando dispositivos: " + label );
             _d.timeCheck();
             ClienteDispositivos clientDi;
             clientDi = new ClienteDispositivos( String.valueOf(startDate.getTime()), String.valueOf(endDate.getTime()));
             clientDi.setLabel(label);
             clientDi.createWebResource(clientNo.getNodo(i));
             response = clientDi.get_Dispositivos(String.class);
-            _d.primeOUT(label, "Descarga OK" + _d.timeDisplay(true));
-            _d.primeOUT(label, "Procesando ");
+            Logger.getGlobal().fine("Descarga OK" + _d.timeDisplay(true) +"Procesando ");
             clientDi.setConexion(conexion);
             if (response != null) {
                 clientDi.procesarDatos(response.toString());
             }
-            _d.primeOUT(label, "Procesado OK " + clientDi.getProcesados() + _d.timeDisplay(true));
+            Logger.getGlobal().fine("Procesado OK " + clientDi.getProcesados() + _d.timeDisplay(true));
             clientDi.close();
         } catch (com.sun.jersey.api.client.UniformInterfaceException e) {
-            if (e.getResponse().toString().endsWith("returned a response status of 204 No Content")) {
-                _d.primeERR(label, "Error 204 descargando. Se omite.");
-                _d.primeVerbose(label, clientPa.getQuery());
+            if (e.getResponse().toString().endsWith("returned a response status of 204 No Content")) {              
+              Logger.getGlobal().log(Level.WARNING, "Error 204 descargando. Se omite.");
                 if ((clientPa) != null) {
                     clientPa.close();
                 }
             }
-        } catch (Exception e) {
-            _d.primeERR(label, "Algo ha ido mal: " + e.getMessage());
+        } catch (Exception ex) {
+            Logger.getGlobal().fine("Error actualizando lista de dispositivos:"+ ex.getMessage() );
         }
     }
 
@@ -177,23 +179,22 @@ public class ActualizadorDBLocal extends Thread {
 
         //Actualizamos los pasos
         try {
-            _d.primeOUT(label, "Descargando");
+          Logger.getGlobal().fine("Descargando pasos");
+            
             _d.timeCheck();
             clientPa = new ClientePasos(String.valueOf(endDate.getTime()), String.valueOf(startDate.getTime()));
             clientPa.setLabel(label);
             clientPa.createWebResource(clientNo.getNodo(i));
             response = clientPa.get_Pasos(String.class);
-            _d.primeOUT(label, "Descarga OK" + _d.timeDisplay(true));
-            _d.primeOUT(label, "Procesando ");
+            Logger.getGlobal().fine("Descarga OK " + _d.timeDisplay(true)+" . Procesando... ");
             clientPa.procesarDatos(response.toString());
             clientPa.close();
-            _d.primeOUT(label, "Procesado OK " + clientPa.getProcesados() + _d.timeDisplay(true));
+            Logger.getGlobal().fine("Procesado OK " + clientPa.getProcesados() + _d.timeDisplay(true));
 
 
         } catch (com.sun.jersey.api.client.UniformInterfaceException e) {
             if (e.getResponse().toString().endsWith("returned a response status of 204 No Content")) {
-                _d.primeERR(label, "Error 204 descargando. Se omite.");
-                System.err.println(clientPa.getQuery());
+                Logger.getGlobal().log(Level.FINE, "Error 204 descargando. No hay datos aún" );
                 if ((clientPa) != null) {
                     clientPa.close();
                 }
@@ -247,48 +248,53 @@ public class ActualizadorDBLocal extends Thread {
               
                 if ((System.currentTimeMillis() - ultimaActualizacion.getTime()) < TIEMPO_ACTUALIZACIONES_MS) {
                     long tiempo_espera = (long) ((System.currentTimeMillis() - ultimaActualizacion.getTime()) * FACTOR_TIEMPO_ESPERA);
-                    _d.primeOUT("Última actualización hace " + _d.df.format((float) (System.currentTimeMillis() - ultimaActualizacion.getTime()) / 1000 / 60) + " minutos");
-                    _d.primeOUT("Me tengo que actualizar cada " + _d.df.format((float) TIEMPO_ACTUALIZACIONES_MS / 1000 / 60) + " minutos");
-                    _d.primeOUT("Podría actualizar cada " + _d.df.format((float) tiempo_espera / 1000 / 60) + " minutos");
+                    
+                    Logger.getGlobal().log(Level.INFO,"Última actualización hace " + _d.df.format((float) (System.currentTimeMillis() - ultimaActualizacion.getTime()) / 1000 / 60) + " minutos");
+                    Logger.getGlobal().log(Level.INFO,"Me tengo que actualizar cada " + _d.df.format((float) TIEMPO_ACTUALIZACIONES_MS / 1000 / 60) + " minutos");
+                    Logger.getGlobal().log(Level.INFO,"Podría actualizar cada " + _d.df.format((float) tiempo_espera / 1000 / 60) + " minutos");
 
-                    _d.primeOUT("Me voy a dormir " + _d.df.format((float) (tiempo_espera - (System.currentTimeMillis() - ultimaActualizacion.getTime())) / 1000 / 60) + " minutos");
+                    Logger.getGlobal().log(Level.INFO,"Me voy a dormir " + _d.df.format((float) (TIEMPO_ACTUALIZACIONES_MS - (System.currentTimeMillis() - ultimaActualizacion.getTime())) / 1000 / 60) + " minutos");
 
-                    Thread.sleep(tiempo_espera - (System.currentTimeMillis() - ultimaActualizacion.getTime()));
+                    Thread.sleep(TIEMPO_ACTUALIZACIONES_MS - (System.currentTimeMillis() - ultimaActualizacion.getTime()));
 
                     //TIEMPO_ACTUALIZACIONES_MS = tiempo_espera;
                     //NUMERO_MINUTOS_PETICION = (int) Math.round(tiempo_espera / 1000 / 60);
 
 
-                    _d.primeOUT("TIEMPO_ACTUALIZACIONES_MS: " + tiempo_espera + " ms");
-                    _d.primeOUT("NUMERO_MINUTOS_PETICION: " + NUMERO_MINUTOS_PETICION + " minutos");
+                    Logger.getGlobal().log(Level.INFO,"TIEMPO_ACTUALIZACIONES_MS: " + tiempo_espera + " ms");
+                    Logger.getGlobal().log(Level.INFO,"NUMERO_MINUTOS_PETICION: " + NUMERO_MINUTOS_PETICION + " minutos");
+                    
+                    conexion = new Conectar();
+                    
+                    
                     actualizarNodos();
                     actualizaDesdeFecha();
                 } else if ((System.currentTimeMillis() - ultimaActualizacion.getTime()) > TIEMPO_ACTUALIZACIONES_MS) {
                     long tiempo_espera = (long) (-(System.currentTimeMillis() - ultimaActualizacion.getTime()) * -FACTOR_TIEMPO_ESPERA);
-                    _d.primeOUT("Última actualización hace " + _d.df.format((float) (System.currentTimeMillis() - ultimaActualizacion.getTime()) / 1000 / 60) + " minutos");
-                    _d.primeOUT("Me tengo que actualizar cada " + _d.df.format((float) TIEMPO_ACTUALIZACIONES_MS / 1000 / 60) + " minutos");
-                    _d.primeOUT("Me actualizaré ahora cada " + _d.df.format((float) tiempo_espera / 1000 / 60) + " minutos");
+                    Logger.getGlobal().log(Level.INFO,"Última actualización hace " + _d.df.format((float) (System.currentTimeMillis() - ultimaActualizacion.getTime()) / 1000 / 60) + " minutos");
+                    Logger.getGlobal().log(Level.INFO,"Me tengo que actualizar cada " + _d.df.format((float) TIEMPO_ACTUALIZACIONES_MS / 1000 / 60) + " minutos");
+                    Logger.getGlobal().log(Level.INFO,"Me actualizaré ahora cada " + _d.df.format((float) tiempo_espera / 1000 / 60) + " minutos");
 
                     //TIEMPO_ACTUALIZACIONES_MS = tiempo_espera;
                     //NUMERO_MINUTOS_PETICION = (int) Math.round(tiempo_espera / 1000 / 60);
 
-                    _d.primeOUT("TIEMPO_ACTUALIZACIONES_MS: " + tiempo_espera + " ms");
-                    _d.primeOUT("NUMERO_MINUTOS_PETICION: " + NUMERO_MINUTOS_PETICION + " minutos");
+                    Logger.getGlobal().log(Level.INFO,"TIEMPO_ACTUALIZACIONES_MS: " + tiempo_espera + " ms");
+                    Logger.getGlobal().log(Level.INFO,"NUMERO_MINUTOS_PETICION: " + NUMERO_MINUTOS_PETICION + " minutos");
+                    
+                    conexion = new Conectar();
+                    
                     actualizarNodos();
                     actualizaDesdeFecha();
 
                 }
                 
                 _c.set("data.ultimo", Long.toString(ultimaActualizacion.getTime()));
+                Estadisticas.prime();
                 
             } while (true);
 
-        } catch (ParseException ex) {
-            Logger.getLogger(ActualizadorDBLocal.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (InterruptedException ex) {
-            Logger.getLogger(ActualizadorDBLocal.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (SQLException ex) {
-            Logger.getLogger(ActualizadorDBLocal.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (ParseException | InterruptedException | SQLException ex) {
+            Logger.getGlobal().log(Level.SEVERE, null, ex);
         }
 
 
@@ -342,6 +348,7 @@ public class ActualizadorDBLocal extends Thread {
             }
 
         } while (calendarEnd.before(limite));
+
 
         synchronized (ActualizadorDBLocal.class) {
             origen = Calendar.getInstance();

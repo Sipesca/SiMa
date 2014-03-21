@@ -179,7 +179,7 @@ public class ClienteDispositivos {
         } catch (UniformInterfaceException e) {
 
             if (e.getResponse().toString().endsWith("returned a response status of 204 No Content")) {
-                _d.primeERR(label, "Error 204 descargando. Se omite.");
+                Logger.getGlobal().log(Level.FINE,"Error 204 descargando. Se omite.");
             }
 
             return null;
@@ -193,14 +193,7 @@ public class ClienteDispositivos {
      * petición HTTP
      */
     public void createWebResource(String node) {
-      
-      _d.primeERR("https://cityanalytics.net/restapi/rawdataservice/"
-                + node + "/dispositivos?user=" + queryParamValues[0]
-                + "&pass=" + queryParamValues[1]
-                + "&start=" + queryParamValues[2]
-                + "&end=" + queryParamValues[3]
-                + "&inc=true");
-      
+           
         webResource = client.resource("https://cityanalytics.net/restapi/rawdataservice/"
                 + node + "/dispositivos?user=" + queryParamValues[0]
                 + "&pass=" + queryParamValues[1]
@@ -246,7 +239,7 @@ public class ClienteDispositivos {
 
             }
         } catch (Exception e) {
-            System.err.println("E>" + e.getMessage());
+            Logger.getGlobal().log(Level.WARNING,"Fallo en el procesamiento de los datos",e);
         }
 
         syncDB();
@@ -377,34 +370,34 @@ public class ClienteDispositivos {
                     procesada = false;
                     intentos++;
                     if (intentos > MAX_ERRORES_PARA_NOTIFICACION) {
-                        _d.primeERR(label, "Error hebra " + this.getId() + " sincronización con DB Error " + ex.getErrorCode() + " Se intentará nuevamente (" + intentos + ")");
+                      Logger.getGlobal().log(Level.WARNING,"Error hebra " + this.getId() + " sincronización con DB Error " + ex.getErrorCode() + " Se intentará nuevamente (" + intentos + ")");
                     }
                     try {
                         sleep(TIME_SLEEP_IN_ERROR);
                     } catch (InterruptedException ex1) {
-                        System.err.println("E>Error durmiendo hebra " + this.getId());
+                      Logger.getGlobal().log(Level.SEVERE,"Error durmiendo hebra " + this.getId());
                     }
                 } catch (NullPointerException e) {
                     procesada = false;
                     intentos++;
                     if (intentos > 0) {
-                        _d.primeERR(label, "Error hebra " + this.getId() + " no se ha podido conectar a la DB. Se intentará nuevamente (" + intentos + ")");
+                      Logger.getGlobal().log(Level.FINE,"Error hebra " + this.getId() + " no se ha podido conectar a la DB. Se intentará nuevamente (" + intentos + ")",e);
                     }
                     try {
                         sleep(TIME_SLEEP_IN_ERROR);
                     } catch (InterruptedException ex1) {
-                        System.err.println("E>Error durmiendo hebra " + this.getId());
+                      Logger.getGlobal().log(Level.SEVERE,"Error durmiendo hebra " + this.getId(), ex1);
                     }
                 } catch (Exception ex) {
                     procesada = false;
                     intentos++;
                     if (intentos > 0) {
-                        _d.primeERR(label, "Error hebra " + this.getId() + " no se ha podido conectar a la DB. Se intentará nuevamente (" + intentos + ")");
+                      Logger.getGlobal().log(Level.FINE,"Error hebra " + this.getId() + " no se ha podido conectar a la DB. Se intentará nuevamente (" + intentos + ")");
                     }
                     try {
                         sleep(TIME_SLEEP_IN_ERROR);
                     } catch (InterruptedException ex1) {
-                        System.err.println("E>Error durmiendo hebra " + this.getId());
+                      Logger.getGlobal().log(Level.SEVERE,"Error durmiendo hebra " + this.getId(), ex1);
                     }
 
                 }
@@ -431,7 +424,8 @@ public class ClienteDispositivos {
             l_th.get(l_th.size() - 1).start();
 
         } catch (Exception ex) {
-            System.err.println("E>" + ex.getMessage());
+          Logger.getGlobal().log(Level.SEVERE,"Error sincronizado", ex);
+            
 
         }
         cache_size = 0;
@@ -500,19 +494,18 @@ public class ClienteDispositivos {
         @Override
         public void run() {
             int insertados = 0;
-            _d.primeOUT(label, "Escritura en BD: " + l.size() + " peticiones");
+            Logger.getGlobal().log(Level.FINE, "Escritura en BD: " + l.size() + " peticiones");
             while (!l.isEmpty()) {
                 try {
                     l.get(0).join();
                     insertados = insertados + l.get(0).insertados;
                     l.remove(0);
                 } catch (InterruptedException ex) {
-                    Logger.getLogger(ClienteDispositivos.class.getName()).log(Level.SEVERE, null, ex);
+                    Logger.getGlobal().log(Level.SEVERE, null, ex);
                 }
 
             }
-            _d.primeOUT(label, "Escritura en DB OK.");
-            _d.primeOUT(label, "Dispositivos insertados " + insertados + " de " + procesados + " procesados (" + (procesados - insertados) + ")");
+            Logger.getGlobal().log(Level.FINE,"Escritura en DB OK. Dispositivos insertados " + insertados + " de " + procesados + " procesados (" + (procesados - insertados) + ")");
 
 
         }
