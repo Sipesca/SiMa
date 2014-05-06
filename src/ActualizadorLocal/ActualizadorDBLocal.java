@@ -121,14 +121,14 @@ public class ActualizadorDBLocal extends Thread {
     public static void actualizarNodos() {
         try {
           Logger.getGlobal().log(Level.INFO,"Actualizando nodos.");
-            
             clientNo = new ClienteNodos(conexion);
+            Logger.getGlobal().log(Level.FINE,"Descargando nodos.");
             response = clientNo.get_Nodos(String.class);
+            Logger.getGlobal().log(Level.FINE,"Procesando nodos.");
             clientNo.procesarDatos(response.toString());
             Logger.getGlobal().log(Level.INFO,"Número de nodos actuales: " + clientNo.getHowManyNodos());
         } catch (SQLException ex) {
-          Logger.getGlobal().log(Level.SEVERE,"Error durante la actualización de nodos.",ex);
-            
+          Logger.getGlobal().log(Level.SEVERE,"Error durante la actualización de nodos.",ex);  
         }
     }
 
@@ -179,7 +179,7 @@ public class ActualizadorDBLocal extends Thread {
 
         //Actualizamos los pasos
         try {
-          Logger.getGlobal().fine("Descargando pasos");
+          Logger.getGlobal().fine("Descargando pasos "+ label);
             
             _d.timeCheck();
             clientPa = new ClientePasos(String.valueOf(endDate.getTime()), String.valueOf(startDate.getTime()));
@@ -329,7 +329,7 @@ public class ActualizadorDBLocal extends Thread {
         }
 
         do {
-            //System.err.println("[DISPOSITIVOS] De "+ startDate.toString() + " a " + endDate.toString());
+            System.err.println("[DISPOSITIVOS] De "+ startDate.toString() + " a " + endDate.toString());
             for (int i = 0; i < clientNo.getHowManyNodos(); i = checkChildrens(i)) {
                 System.gc();
                 if (!sigo) {
@@ -367,7 +367,7 @@ public class ActualizadorDBLocal extends Thread {
 
 
         do {
-            //System.err.println("[PASOS] De "+ startDate.toString() + " a " + endDate.toString());
+            System.err.println("[PASOS] De "+ startDate.toString() + " a " + endDate.toString());
 
             for (int i = 0; i < clientNo.getHowManyNodos(); i = checkChildrens(i)) {
                 System.gc();

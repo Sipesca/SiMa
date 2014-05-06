@@ -59,15 +59,15 @@ public class ActualizadorFT{
           conta_nodos++;
         }
            
-        Logger.getGlobal().log(Level.INFO, "Sincronizando Pasos");
-
         PasosPorHoras h = new PasosPorHoras();
+        Logger.getGlobal().log(Level.INFO, "Sincronizando Pasos desde " + h.getFecha());
         h.check = true;
         h.calcular();
         
-        Logger.getGlobal().log(Level.INFO, "Pasos sincronizados.");
+        
 
         TrazasPorHoras t = new TrazasPorHoras();
+        Logger.getGlobal().log(Level.INFO, "Pasos sincronizados desde " + t.getFecha());
         t.check = true;
         t.calcular();
         
@@ -83,7 +83,15 @@ public class ActualizadorFT{
   }
 
   public void start() {
-
+    
+    try {
+      //Añadimos un delay al comienzo del sincronizado para dar tiempo al sincronizador local. Se puede sacar con un
+      //Notify, pero no está aún implementado :)
+      wait(1000*60*15);
+    } catch (InterruptedException ex) {
+      Logger.getLogger(ActualizadorFT.class.getName()).log(Level.SEVERE, null, ex);
+    }
+    
     if (_c.getBool("ft.primera_vez")) {
 
       Logger.getGlobal().log(Level.INFO, "Comenzando sincronizado forzado en la nube");
@@ -95,13 +103,13 @@ public class ActualizadorFT{
 
       Logger.getGlobal().log(Level.INFO, "Nodos sincronizados");
       
-      PasosPorHoras h = new PasosPorHoras("2014-03-19 00:00:00");
+      PasosPorHoras h = new PasosPorHoras("2013-10-01 00:00:00");
       h.check = true;
       h.calcular();
 
       Logger.getGlobal().log(Level.INFO, "Pasos sincronizados");
       
-      TrazasPorHoras t = new TrazasPorHoras("2013-06-25 00:00:00");
+      TrazasPorHoras t = new TrazasPorHoras("2013-10-01 00:00:00");
       t.check = false;
       t.calcular();
 

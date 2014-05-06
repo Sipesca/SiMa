@@ -29,9 +29,7 @@ public class Estadisticas {
   public static int PETICIONES_FT_REPETIDAS = 0;
   public static int PETICIONES_FT_CUOTA = 0;
   public static int PETICIONES_FT_RAPIDO = 0;
-  
-  
-  
+   
   public static int PETICIONES_DB = 0;
   
   public static int DISPOSITIVOS_PROCESADOS = 0;

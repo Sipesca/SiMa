@@ -72,6 +72,10 @@ public PasosPorHoras() {
     //campos.add("nombre");
     campos.add("poligono");
   }
+
+  public String getFecha() {
+    return fecha;
+  }
   
   
   

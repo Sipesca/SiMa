@@ -68,8 +68,10 @@ public TrazasPorHoras() {
     campos.add("poligono");
     campos.add("distancia");
   }
-  
-  
+
+  public String getFecha() {
+    return fecha;
+  }
   
   public String setFechaUltima(){
     Sqlresponse r = cFT.select(TABLAID,"Fecha","","ORDER BY \'Fecha\' DESC LIMIT 1" );  
