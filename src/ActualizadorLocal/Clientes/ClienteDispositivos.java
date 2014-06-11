@@ -193,8 +193,13 @@ public class ClienteDispositivos {
      * petición HTTP
      */
     public void createWebResource(String node) {
-           
-        webResource = client.resource("https://cityanalytics.net/restapi/rawdataservice/"
+          /* Logger.getGlobal().fine("http://cityanalytics.net/restapi/rawdataservice/"
+                + node + "/dispositivos?user=" + queryParamValues[0]
+                + "&pass=" + queryParamValues[1]
+                + "&start=" + queryParamValues[2]
+                + "&end=" + queryParamValues[3]
+                + "&inc=true"); */
+        webResource = client.resource("http://cityanalytics.net/restapi/rawdataservice/"
                 + node + "/dispositivos?user=" + queryParamValues[0]
                 + "&pass=" + queryParamValues[1]
                 + "&start=" + queryParamValues[2]
@@ -239,7 +244,7 @@ public class ClienteDispositivos {
 
             }
         } catch (Exception e) {
-            Logger.getGlobal().log(Level.WARNING,"Fallo en el procesamiento de los datos",e);
+            Logger.getGlobal().log(Level.WARNING,"Fallo en el procesamiento de los datos " + datos + "\n" + webResource.toString() ,e);
         }
 
         syncDB();
@@ -370,7 +375,7 @@ public class ClienteDispositivos {
                     procesada = false;
                     intentos++;
                     if (intentos > MAX_ERRORES_PARA_NOTIFICACION) {
-                      Logger.getGlobal().log(Level.WARNING,"Error hebra " + this.getId() + " sincronización con DB Error " + ex.getErrorCode() + " Se intentará nuevamente (" + intentos + ")");
+                      Logger.getGlobal().log(Level.WARNING,"Aviso hebra " + this.getId() + " aún no ha sincronizado con DB. Código " + ex.getErrorCode() + " Se intentará nuevamente (" + intentos + ")");
                     }
                     try {
                         sleep(TIME_SLEEP_IN_ERROR);
@@ -381,7 +386,7 @@ public class ClienteDispositivos {
                     procesada = false;
                     intentos++;
                     if (intentos > 0) {
-                      Logger.getGlobal().log(Level.FINE,"Error hebra " + this.getId() + " no se ha podido conectar a la DB. Se intentará nuevamente (" + intentos + ")",e);
+                      Logger.getGlobal().log(Level.FINE,"Aviso hebra " + this.getId() + " no ha podido conectar aún con la DB. Se intentará nuevamente (" + intentos + ")",e);
                     }
                     try {
                         sleep(TIME_SLEEP_IN_ERROR);
@@ -392,7 +397,7 @@ public class ClienteDispositivos {
                     procesada = false;
                     intentos++;
                     if (intentos > 0) {
-                      Logger.getGlobal().log(Level.FINE,"Error hebra " + this.getId() + " no se ha podido conectar a la DB. Se intentará nuevamente (" + intentos + ")");
+                      Logger.getGlobal().log(Level.FINE,"Aviso hebra " + this.getId() + " no se ha podido conectar aún a la DB. Se intentará nuevamente (" + intentos + ")");
                     }
                     try {
                         sleep(TIME_SLEEP_IN_ERROR);
@@ -419,6 +424,7 @@ public class ClienteDispositivos {
      * Función que sincroniza con la Base de Datos.
      */
     public void syncDB() {
+      if(cache_size!=0){
         try {
             l_th.add(new threadSyncDB(cache, l_th.size()));
             l_th.get(l_th.size() - 1).start();
@@ -427,7 +433,7 @@ public class ClienteDispositivos {
           Logger.getGlobal().log(Level.SEVERE,"Error sincronizado", ex);
             
 
-        }
+        }}
         cache_size = 0;
         cache = "";
     }

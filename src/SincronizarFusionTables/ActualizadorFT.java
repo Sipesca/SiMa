@@ -19,10 +19,12 @@ package SincronizarFusionTables;
 import Entorno.Depuracion.Debug;
 import Entorno.Configuracion.Config;
 import Entorno.Estadisticas.Estadisticas;
+import Entorno.Estadisticas.infoNodo_pasoPorHora;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import util.TwitterAgente;
 
 /**
  * Clase encargada de ejecutar el temporizador para el cálculo y subida de datos actualizados a Google Fusion Tables
@@ -33,12 +35,14 @@ public class ActualizadorFT{
 
   static Config _c = new Config();
   Debug _d = new Debug();
+  static Estadisticas _e = new Estadisticas();
   //Tarea temporizada
   TimerTask temporizador;
 
-  private int conta_nodos = 0;
   
   private final int MAX_conta_nodos  = _c.getInt("ft.veces_sincronizacion_nodos");;
+  
+  private int conta_nodos = MAX_conta_nodos;
   
   public ActualizadorFT() {
 
@@ -58,18 +62,26 @@ public class ActualizadorFT{
         }else{
           conta_nodos++;
         }
-           
+        
+        infoNodo_pasoPorHora.reset();
+        
         PasosPorHoras h = new PasosPorHoras();
         Logger.getGlobal().log(Level.INFO, "Sincronizando Pasos desde " + h.getFecha());
         h.check = true;
         h.calcular();
         
+        Logger.getGlobal().log(Level.INFO, "Pasos sincronizados.");
         
+        Logger.getGlobal().log(Level.INFO, "Preparando envío de Tweet.");
+        
+        TwitterAgente _t = new TwitterAgente();
+        
+        _t.publicar(infoNodo_pasoPorHora.prime());
 
-        TrazasPorHoras t = new TrazasPorHoras();
-        Logger.getGlobal().log(Level.INFO, "Pasos sincronizados desde " + t.getFecha());
-        t.check = true;
-        t.calcular();
+       // TrazasPorHoras t = new TrazasPorHoras();
+       // Logger.getGlobal().log(Level.INFO, "Pasos sincronizados desde " + t.getFecha());
+       // t.check = true;
+       // t.calcular();
         
         Logger.getGlobal().log(Level.INFO, "Trazas sincronizadas.");
 
@@ -84,15 +96,16 @@ public class ActualizadorFT{
 
   public void start() {
     
-    try {
-      //Añadimos un delay al comienzo del sincronizado para dar tiempo al sincronizador local. Se puede sacar con un
-      //Notify, pero no está aún implementado :)
-      wait(1000*60*15);
-    } catch (InterruptedException ex) {
-      Logger.getLogger(ActualizadorFT.class.getName()).log(Level.SEVERE, null, ex);
-    }
     
     if (_c.getBool("ft.primera_vez")) {
+      
+      Logger.getGlobal().log(Level.INFO, "Esperando 10 minutos para el comienzo del sincronizado forzado en la NUBE");
+      
+      try {
+        Thread.sleep(10*60*1000);
+      } catch (InterruptedException ex) {
+        Logger.getLogger(ActualizadorFT.class.getName()).log(Level.SEVERE, null, ex);
+      }
 
       Logger.getGlobal().log(Level.INFO, "Comenzando sincronizado forzado en la nube");
 
@@ -103,19 +116,19 @@ public class ActualizadorFT{
 
       Logger.getGlobal().log(Level.INFO, "Nodos sincronizados");
       
-      PasosPorHoras h = new PasosPorHoras("2013-10-01 00:00:00");
+      PasosPorHoras h = new PasosPorHoras("2014-05-27 10:26:54 ");
       h.check = true;
       h.calcular();
 
       Logger.getGlobal().log(Level.INFO, "Pasos sincronizados");
       
-      TrazasPorHoras t = new TrazasPorHoras("2013-10-01 00:00:00");
-      t.check = false;
-      t.calcular();
+     // TrazasPorHoras t = new TrazasPorHoras("2014-05-23 10:26:54 ");
+     // t.check = true;
+     // t.calcular();
 
-      Logger.getGlobal().log(Level.INFO, "Trazas sincronizadas");
+     // Logger.getGlobal().log(Level.INFO, "Trazas sincronizadas");
       
-//      PasosPorDias p = new PasosPorDias("2012-10-31 11:15:40");
+//      PasosPorDias p = new PasosPorDias("2012-10-31 1Fusion1:15:40");
 //      p.check = false; 
 //      p.calcular();
 
@@ -126,7 +139,7 @@ public class ActualizadorFT{
     }
 
     Timer timer = new Timer("ActualizadorFusionTable", true);
+    //timer.scheduleAtFixedRate(temporizador, _c.getLong("ft.periodo_actualizacion"), _c.getLong("ft.periodo_actualizacion"));
     timer.scheduleAtFixedRate(temporizador, _c.getLong("ft.periodo_actualizacion"), _c.getLong("ft.periodo_actualizacion"));
-
   }
 }

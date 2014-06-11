@@ -16,6 +16,7 @@
  */
 package Entorno.Estadisticas;
 
+import java.util.ArrayList;
 import java.util.logging.Logger;
 
 /**
@@ -24,40 +25,36 @@ import java.util.logging.Logger;
  */
 public class Estadisticas {
   
+  
   public static int PETICIONES_FT_GENERADAS = 0;
   public static int PETICIONES_FT_EXITO = 0;
   public static int PETICIONES_FT_REPETIDAS = 0;
   public static int PETICIONES_FT_CUOTA = 0;
   public static int PETICIONES_FT_RAPIDO = 0;
-   
   public static int PETICIONES_DB = 0;
-  
   public static int DISPOSITIVOS_PROCESADOS = 0;
   public static int DISPOSITIVOS_INSERTADOS = 0;
-  
   public static int PASOS_PROCESADOS = 0;
   public static int PASOS_INSERTADOS = 0;
-  
-  public String toString(){
+  public static infoNodo_pasoPorHora INFO_NODOS = new infoNodo_pasoPorHora();
+
+  public String toString() {
     return "Peticiones_FT: " + PETICIONES_FT_GENERADAS;
   }
-  
-  public static void prime(){
-    Logger.getGlobal().info("Estadísticas: Peticiones a FT generadas: "+ PETICIONES_FT_GENERADAS);
-    Logger.getGlobal().info("Estadísticas: Peticiones a FT exitosas: "+ PETICIONES_FT_EXITO);
-    Logger.getGlobal().info("Estadísticas: Peticiones a FT repetidas: "+ PETICIONES_FT_REPETIDAS);
-    
-    Logger.getGlobal().info("Estadísticas: Peticiones a DB generadas: "+ PETICIONES_DB);
-    
-    Logger.getGlobal().info("Estadísticas: Dispositivos Procesados: "+ DISPOSITIVOS_PROCESADOS);
-    Logger.getGlobal().info("Estadísticas: Dispositivos Insertados: "+ DISPOSITIVOS_INSERTADOS);
-    
-    Logger.getGlobal().info("Estadísticas: Pasos Procesados: "+ PASOS_PROCESADOS);
-    Logger.getGlobal().info("Estadísticas: Pasos Insertados: "+ PASOS_INSERTADOS);
-    
-    
+
+  public static void prime() {
+    Logger.getGlobal().info("Estadísticas: Peticiones a FT generadas: " + PETICIONES_FT_GENERADAS);
+    Logger.getGlobal().info("Estadísticas: Peticiones a FT exitosas: " + PETICIONES_FT_EXITO);
+    Logger.getGlobal().info("Estadísticas: Peticiones a FT repetidas: " + PETICIONES_FT_REPETIDAS);
+
+    Logger.getGlobal().info("Estadísticas: Peticiones a DB generadas: " + PETICIONES_DB);
+
+    Logger.getGlobal().info("Estadísticas: Dispositivos Procesados: " + DISPOSITIVOS_PROCESADOS);
+    Logger.getGlobal().info("Estadísticas: Dispositivos Insertados: " + DISPOSITIVOS_INSERTADOS);
+
+    Logger.getGlobal().info("Estadísticas: Pasos Procesados: " + PASOS_PROCESADOS);
+    Logger.getGlobal().info("Estadísticas: Pasos Insertados: " + PASOS_INSERTADOS);
+
+
   }
-  
-  
-  
 }

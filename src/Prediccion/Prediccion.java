@@ -20,12 +20,16 @@ import Entorno.Configuracion.Config;
 import Entorno.Depuracion.Debug;
 import SincronizarFusionTables.conectarFusionTables;
 import com.google.api.services.fusiontables.model.Sqlresponse;
+import java.io.IOException;
 import java.text.ParseException;
 import java.util.ArrayList;
 
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import weka.core.Instances;
 import weka.classifiers.evaluation.NumericPrediction;
+import weka.classifiers.functions.LinearRegression;
 import weka.classifiers.functions.SMOreg;
 import weka.classifiers.timeseries.WekaForecaster;
 import weka.classifiers.timeseries.core.TSLagMaker;
@@ -39,8 +43,6 @@ import weka.experiment.InstanceQuery;
  * @author antares
  */
 
-
-
 public class Prediccion extends Thread{
 
   private Config _c = new Config();
@@ -49,10 +51,6 @@ public class Prediccion extends Thread{
   private String fecha;
   private final String TABLAID = _c.get("ft.PASOSPORHORAS.ID");
   
-  
-  
-  
-  
   InstanceQuery query = null;
   String nodo = null;
 
@@ -60,7 +58,7 @@ public class Prediccion extends Thread{
     nodo = elnodo;
   }
   
-  Instances cargarDatos() throws ParseException{
+  ArrayList<Instances> cargarDatos() throws ParseException{
     //Declaramos los atributos de las instancias
     Attribute a0 = new Attribute("Intervalo", "yyyy-MM-dd HH:mm:ss");
     Attribute a1 = new Attribute("Total");
@@ -69,29 +67,44 @@ public class Prediccion extends Thread{
     c.add(a0); c.add(a1);
     
     //Creamos el conjunto de instancias
-    Instances instances = new Instances (nodo, c ,1000);
+    ArrayList<Instances> instances = new ArrayList<>(24);
+    
+    for(int i= 0 ; i<24; i++){
+       instances.add(new Instances (nodo, c ,1000));
+    }
+    
     
     //Instanciamos conexion con FT
     cFT = new conectarFusionTables();
-    Sqlresponse r = cFT.select(TABLAID,"Intervalo, Total","idNodo = " +nodo+" and ","ORDER BY \'Intervalo\' DESC LIMIT 10000");
+    Sqlresponse r = cFT.select(TABLAID,"Intervalo, Total","idNodo = " +nodo+" ","ORDER BY \'Intervalo\' DESC LIMIT 10000");
+    
+    try {
+      System.err.println(r.toPrettyString());
+    } catch (IOException ex) {
+      Logger.getLogger(Prediccion.class.getName()).log(Level.SEVERE, null, ex);
+    }
     
     for(List<Object> a : r.getRows()){
       Instance i = new DenseInstance(2);
      
       String s0 = (String) a.get(0);
       String s1 = (String) a.get(1);
+      int hora = Integer.parseInt(s0.substring(11, 13));
       
-      //System.err.println(s0 + " ->" + s1);
+      System.err.println(s0 + " ->" + s1 + "  " +  hora  );
       
-      i.setValue(instances.attribute(0), instances.attribute(0).parseDate(s0));
-      i.setValue(instances.attribute(1), Integer.parseInt(s1));
+      i.setValue(instances.get(hora).attribute(0), instances.get(hora).attribute(0).parseDate(s0));
+      i.setValue(instances.get(hora).attribute(1), Integer.parseInt(s1));
       
-      instances.add(i);
+      instances.get(hora).add(i);
+      
+      
     }
     
-    instances.sort(0);
+    for(Instances a : instances){
+      a.sort(0);
+    }
 
-    
     return instances;
   }
   
@@ -100,48 +113,59 @@ public class Prediccion extends Thread{
   public void run() {
      try {
        
-       Instances pasos = cargarDatos();
+       ArrayList<Instances> pasos = cargarDatos();
        
        System.err.println(pasos.size());
        
        //Instanciamos el predictor
-       WekaForecaster forecaster = new WekaForecaster();
+       ArrayList<WekaForecaster> forecaster = new ArrayList<>(24);
+       
+       for(int a = 0; a < 24 ; a++){
+         forecaster.add(new WekaForecaster());
+       }
+       
+       int a = 0;
+       
+       for(WekaForecaster fore : forecaster){
        
        //Defimimos el atributo que queremos predecir
-       forecaster.setFieldsToForecast("Total");
+       fore.setFieldsToForecast("Total");
        
        //Definimos el método de predicción a emplear. En este caso, regresión lineal porque 
        //en el artículo es el que mejor ha funcionado
-       forecaster.setBaseForecaster(new SMOreg());
+       fore.setBaseForecaster(new LinearRegression());
        
        //Defimimos el atributo que "marca" el tiempo y su peridiocidad
-       forecaster.getTSLagMaker().setTimeStampField("Intervalo");
-       forecaster.getTSLagMaker().setMinLag(1);
-       forecaster.getTSLagMaker().setMaxLag(24);
-       forecaster.getTSLagMaker().setPeriodicity(TSLagMaker.Periodicity.HOURLY);
+       fore.getTSLagMaker().setTimeStampField("Intervalo");
+       fore.getTSLagMaker().setMinLag(1);
+       fore.getTSLagMaker().setMaxLag(1);
+
+       fore.getTSLagMaker().setPeriodicity(TSLagMaker.Periodicity.WEEKLY);
        
-       forecaster.buildForecaster(pasos, System.out);
+       fore.buildForecaster(pasos.get(a), System.out);
        
-       System.err.printf("Terminó");
+        // System.err.println(pasos.get(a).toString());
        
+       //System.err.printf("Terminó");
        
-      forecaster.primeForecaster(pasos);
+      fore.primeForecaster(pasos.get(a));
        
-       List<List<NumericPrediction>> forecast = forecaster.forecast(24, System.out);
+       List<List<NumericPrediction>> forecast = fore.forecast(1, System.out);
 
       
-      
+         System.err.println("==== " + a +  " ====");
       // output the predictions. Outer list is over the steps; inner list is over
       // the targets
-      for (int i = 0; i < 24; i++) {
+      for (int i = 0; i < 1; i++) {
         List<NumericPrediction> predsAtStep = forecast.get(i);
         for (int j = 0; j < 1; j++) {
           NumericPrediction predForTarget = predsAtStep.get(j);
-          System.out.print("" + predForTarget.predicted() + " ");
+          System.err.print("" + predForTarget.predicted() + " ");
         }
-        System.out.println();
+        System.err.println();
       }
-       
+      a++;
+       }
    /*    
        
       // path to the Australian wine data included with the time series forecasting

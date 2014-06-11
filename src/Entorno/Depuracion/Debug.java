@@ -38,7 +38,7 @@ public class Debug {
   /**
    * Variable de formato para fechas
    */
-  public static SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+  public static SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
   /**
    * Función de depuración: Devuele una cadena con la hora y fecha actuales formateadas

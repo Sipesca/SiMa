@@ -19,12 +19,19 @@ package SincronizarFusionTables;
 import Entorno.Configuracion.Config;
 import Entorno.Depuracion.Debug;
 import Entorno.Conectar.Conectar;
+import Entorno.Estadisticas.Estadisticas;
+import Entorno.Estadisticas.infoNodo_pasoPorHora;
+import com.google.api.client.util.DateTime;
 import com.google.api.services.fusiontables.model.Sqlresponse;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -35,9 +42,10 @@ import java.util.logging.Logger;
  * @author Antonio Fernández Ares (antares.es@gmail.com)
  */
 public class PasosPorHoras {
-
+  
   private Config _c = new Config();
   private Debug _d = new Debug();
+  //public static Estadisticas _e = new Estadisticas();
   private conectarFusionTables cFT = new conectarFusionTables();
   private String fecha;
   private ResultSet rs;
@@ -60,7 +68,7 @@ public class PasosPorHoras {
     campos.add("poligono");
   }
   
-public PasosPorHoras() {
+  public PasosPorHoras() {
     campos.add("Intervalo");
     campos.add("idNodo");
     campos.add("Total");
@@ -72,33 +80,45 @@ public PasosPorHoras() {
     //campos.add("nombre");
     campos.add("poligono");
   }
-
+  
   public String getFecha() {
     return fecha;
   }
   
-  
-  
-  public String setFechaUltima(){
-    Sqlresponse r = cFT.select(TABLAID,"Intervalo","","ORDER BY \'Intervalo\' DESC LIMIT 1" );  
-    this.fecha = (String) r.getRows().get(0).get(0);
-    return fecha;
+  public String setFechaUltima() {
+    Sqlresponse r = cFT.select(TABLAID, "Intervalo", "", "ORDER BY \'Intervalo\' DESC LIMIT 1");
+    String mifecha = (String) r.getRows().get(0).get(0);
+    try {
+      
+      Date b = _d.sdf.parse((String) r.getRows().get(0).get(0));
+      Calendar c = Calendar.getInstance();
+      c.setTime(b);
+      c.add(Calendar.HOUR, -24);
+      mifecha = _d.sdf.format(b);
+      this.fecha = mifecha;
+      return fecha;
+      
+    } catch (ParseException ex) {
+      Logger.getLogger(PasosPorHoras.class.getName()).log(Level.SEVERE, null, ex);
+    }
+    //this.fecha = (String) r.getRows().get(0).get(0);
+    return mifecha;
   }
-
-    public boolean calcular() {
+  
+  public boolean calcular() {
     Conectar conectar = new Conectar();
     try {
       Statement st = conectar.crearSt();
       
       Logger.getGlobal().log(Level.INFO, "Calculando pasos en DB LOCAL");
       
-      //System.out.println("CALL agrupaPasosPorIntervalosNodosSeparados('" + fecha + "','" + _d.sdf.format(Calendar.getInstance().getTime()) + "','" + 60 + "')");
+      Logger.getGlobal().fine("CALL agrupaPasosPorIntervalosNodosSeparados('" + fecha + "','" + _d.sdf.format(Calendar.getInstance().getTime()) + "','" + 60 + "')");
       rs = st.executeQuery("CALL agrupaPasosPorIntervalosNodosSeparados('" + fecha + "','" + _d.sdf.format(Calendar.getInstance().getTime()) + "','" + 60 + "')");
-
+      
       Logger.getGlobal().log(Level.INFO, "Calculado pasos en DB LOCAL: OK");
       
       List<String> valores = new ArrayList<>();
-
+      
       Logger.getGlobal().log(Level.INFO, "Subiendo información a la Nube");
       
       while (rs.next()) {
@@ -113,25 +133,31 @@ public PasosPorHoras() {
         //valores.add(rs.getString(6)); //nombre
         valores.add(rs.getString(7)); //poligono
         
-        cFT.insert(TABLAID, campos, valores, check,2);
+        try {
+          Logger.getGlobal().fine("VAlores:" + rs.getString(2) + " " + rs.getInt(3) + " " + rs.getString(6));
+          infoNodo_pasoPorHora.update(rs.getString(2), rs.getInt(3), rs.getString(6));
+        } catch (Exception ex) {
+          Logger.getGlobal().log(Level.SEVERE, ex.getMessage());
+        }
+        cFT.insert(TABLAID, campos, valores, check, 2);
         valores.clear();
       }
       
       Logger.getGlobal().log(Level.INFO, "Todos los valores procesados.");
       
-       cFT.forzarSync();
-       
-       Logger.getGlobal().log(Level.INFO, "Esperando al envío y confirmación de los valores en la nube.");
-       
-       cFT.esperarSubida();
-       
-       Logger.getGlobal().log(Level.INFO, "Todos los valores subidos a la nube.");
-       
+      cFT.forzarSync();
+      
+      Logger.getGlobal().log(Level.INFO, "Esperando al envío y confirmación de los valores en la nube.");
+      
+      cFT.esperarSubida();
+      
+      Logger.getGlobal().log(Level.INFO, "Todos los valores subidos a la nube.");
+      
     } catch (SQLException ex) {
       Logger.getGlobal().log(Level.SEVERE, "Fallo en cálculo de los pasos. " + ex.getMessage(), ex);
     }
-
-
+    
+    
     return false;
   }
 }

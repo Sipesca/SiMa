@@ -23,6 +23,7 @@ import Entorno.Conectar.Conectar;
 import Entorno.Configuracion.Config;
 import Entorno.Depuracion.Debug;
 import Entorno.Estadisticas.Estadisticas;
+import static java.lang.Thread.sleep;
 import java.util.Date;
 import java.sql.SQLException;
 import java.text.ParseException;
@@ -39,13 +40,13 @@ import java.util.logging.Logger;
 public class ActualizadorDBLocal extends Thread {
 
     //Variables de Fechas
-    static Calendar calendarStart;
-    static Calendar calendarEnd;
-    static Calendar limite;
-    static Calendar origen;
-    static java.util.Date startDate;
-    static java.util.Date endDate;
-    static java.util.Date ultimaActualizacion;
+    private Calendar calendarStart;
+    private Calendar calendarEnd;
+    private Calendar limite;
+    private Calendar origen;
+    private java.util.Date startDate;
+    private java.util.Date endDate;
+    private java.util.Date ultimaActualizacion;
     /**
      * Variables de configuración de la actualización
      */
@@ -53,6 +54,9 @@ public class ActualizadorDBLocal extends Thread {
     static int NUMERO_MINUTOS_PETICION = 60 * 24;
     static double FACTOR_TIEMPO_ESPERA = 1.25;
     long TIEMPO_ACTUALIZACIONES_MS = 1000 * 60 * 10;
+    
+    static int VENTANA_HORAS = 12;
+    
     //Variable de conexión (para procesador síncrono)
     static Conectar conexion;
     //Variables para medida de tiempo
@@ -137,15 +141,26 @@ public class ActualizadorDBLocal extends Thread {
      * @param i número de nodo según el array clientNo
      * @throws SQLException
      */
-    public static void actualizarDispositivos(int i) throws SQLException {
-        String label = _d.sdf.format(startDate) + " a " + _d.sdf.format(endDate) + " para " + clientNo.getNodo(i) + ".";
+    public static void actualizarDispositivos(int i, Date start, Date end) throws SQLException {
+      String label;
+      synchronized (ActualizadorDBLocal.class) {
+        //label = Debug.sdf.format(startDate);
+        label = String.valueOf(start.getTime());
+        label += " a ";
+        //System.err.println(endDate.toString());
+        //label += Debug.sdf.format(endDate);
+        label += String.valueOf(end.getTime());
+        label +=  " para ";
+        label += clientNo.getNodo(i) + ".";
 
+      }
+        
         try {
             contadorRepeticion = 0;
             Logger.getGlobal().fine("Descargando dispositivos: " + label );
             _d.timeCheck();
             ClienteDispositivos clientDi;
-            clientDi = new ClienteDispositivos( String.valueOf(startDate.getTime()), String.valueOf(endDate.getTime()));
+            clientDi = new ClienteDispositivos( String.valueOf(start.getTime()), String.valueOf(end.getTime()));
             clientDi.setLabel(label);
             clientDi.createWebResource(clientNo.getNodo(i));
             response = clientDi.get_Dispositivos(String.class);
@@ -174,15 +189,14 @@ public class ActualizadorDBLocal extends Thread {
      * @param i número de nodo según el array clientNo
      * @throws SQLException
      */
-    public static void actualizarPasos(int i) throws SQLException {
-        String label = "[" + _d.sdf.format(startDate) + "][" + _d.sdf.format(endDate) + "][" + clientNo.getNodo(i) + "][Pasos]";
-
+    public static void actualizarPasos(int i, Date start, Date end) throws SQLException {
+        String label = "[" + (start.toString()) + "][" + (end.toString()) + "][" + clientNo.getNodo(i) + "][Pasos]";
         //Actualizamos los pasos
         try {
           Logger.getGlobal().fine("Descargando pasos "+ label);
             
             _d.timeCheck();
-            clientPa = new ClientePasos(String.valueOf(endDate.getTime()), String.valueOf(startDate.getTime()));
+            clientPa = new ClientePasos(String.valueOf(end.getTime()), String.valueOf(start.getTime()));
             clientPa.setLabel(label);
             clientPa.createWebResource(clientNo.getNodo(i));
             response = clientPa.get_Pasos(String.class);
@@ -269,7 +283,7 @@ public class ActualizadorDBLocal extends Thread {
                     
                     actualizarNodos();
                     actualizaDesdeFecha();
-                } else if ((System.currentTimeMillis() - ultimaActualizacion.getTime()) > TIEMPO_ACTUALIZACIONES_MS) {
+                } else  {
                     long tiempo_espera = (long) (-(System.currentTimeMillis() - ultimaActualizacion.getTime()) * -FACTOR_TIEMPO_ESPERA);
                     Logger.getGlobal().log(Level.INFO,"Última actualización hace " + _d.df.format((float) (System.currentTimeMillis() - ultimaActualizacion.getTime()) / 1000 / 60) + " minutos");
                     Logger.getGlobal().log(Level.INFO,"Me tengo que actualizar cada " + _d.df.format((float) TIEMPO_ACTUALIZACIONES_MS / 1000 / 60) + " minutos");
@@ -313,86 +327,102 @@ public class ActualizadorDBLocal extends Thread {
         Date ahora = Calendar.getInstance().getTime();
 
         origen = Calendar.getInstance();
+        
         origen.setTime(ultimaActualizacion);
-
+        
+        
         limite = Calendar.getInstance();
         limite.setTime(ahora);
-        limite.add(Calendar.MINUTE, NUMERO_MINUTOS_PETICION);
+        
 
-        synchronized (ActualizadorDBLocal.class) {
+        origen.add(Calendar.HOUR,-VENTANA_HORAS);
+        limite.add(Calendar.MINUTE, NUMERO_MINUTOS_PETICION);
+        
+        //synchronized (ActualizadorDBLocal.class) {
             calendarStart = origen;
             startDate = calendarStart.getTime();
 
             calendarEnd = origen;
             calendarEnd.add(Calendar.MINUTE, NUMERO_MINUTOS_PETICION);
             endDate = calendarEnd.getTime();
-        }
+        //}
 
+            
         do {
             System.err.println("[DISPOSITIVOS] De "+ startDate.toString() + " a " + endDate.toString());
+             Logger.getGlobal().fine("[DISPOSITIVOS] De "+ startDate.toString() + " a " + endDate.toString());
+            
             for (int i = 0; i < clientNo.getHowManyNodos(); i = checkChildrens(i)) {
                 System.gc();
                 if (!sigo) {
                     waitForIt();
                 } else {
-                   actualizarDispositivos(i);
+                   actualizarDispositivos(i,startDate,endDate);
                 }
             }
-            synchronized (ActualizadorDBLocal.class) {
+            //synchronized (ActualizadorDBLocal.class) {
                 //calendarStart.setTime(calendarEnd.getTime());
                 //startDate = calendarStart.getTime();
 
                 startDate = endDate;
                 calendarEnd.add(Calendar.MINUTE, NUMERO_MINUTOS_PETICION);
                 endDate = calendarEnd.getTime();
-            }
+                
+            //}
 
-        } while (calendarEnd.before(limite));
+        } while (calendarEnd.before(limite)); 
 
+        
+        //synchronized (ActualizadorDBLocal.class) {
+        origen = Calendar.getInstance();
+        origen.setTime(ultimaActualizacion);
+              
+        limite = Calendar.getInstance();
+        limite.setTime(ahora);
+        
+        origen.add(Calendar.HOUR,-VENTANA_HORAS);
+        limite.add(Calendar.MINUTE, NUMERO_MINUTOS_PETICION);
+          
+        
+        calendarStart = origen;
+        startDate = calendarStart.getTime();
 
-        synchronized (ActualizadorDBLocal.class) {
-            origen = Calendar.getInstance();
-            origen.setTime(ultimaActualizacion);
-
-            limite = Calendar.getInstance();
-            limite.setTime(ahora);
-            limite.add(Calendar.MINUTE, NUMERO_MINUTOS_PETICION);
-            calendarStart = origen;
-            startDate = calendarStart.getTime();
-
-            calendarEnd = origen;
-            calendarEnd.add(Calendar.MINUTE, NUMERO_MINUTOS_PETICION);
-            endDate = calendarEnd.getTime();
-        }
-
+        calendarEnd = origen;
+        calendarEnd.add(Calendar.MINUTE, NUMERO_MINUTOS_PETICION);
+        endDate = calendarEnd.getTime();
+        //}
+        
 
         do {
             System.err.println("[PASOS] De "+ startDate.toString() + " a " + endDate.toString());
+            Logger.getGlobal().fine("[PASOS] De "+ startDate.toString() + " a " + endDate.toString());
 
             for (int i = 0; i < clientNo.getHowManyNodos(); i = checkChildrens(i)) {
                 System.gc();
                 if (!sigo) {
                     waitForIt();
                 } else {
-                    actualizarPasos(i);
+                    actualizarPasos(i,startDate, endDate);
 
                 }
             }
 
-            synchronized (ActualizadorDBLocal.class) {
+            //synchronized (ActualizadorDBLocal.class) {
                 //calendarStart.setTime(calendarEnd.getTime());
                 //startDate = calendarStart.getTime();
                 startDate = endDate;
 
                 calendarEnd.add(Calendar.MINUTE, NUMERO_MINUTOS_PETICION);
                 endDate = calendarEnd.getTime();
-            }
+                
+            //}
 
 
         } while (calendarEnd.before(limite));
 
         //Actualizamos la fechad de la última actualización
         ultimaActualizacion = ahora;
+        //ultimaActualizacion = origen.getTime();
 
         return 0;
     }

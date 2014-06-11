@@ -23,8 +23,10 @@ import com.google.api.services.fusiontables.model.Sqlresponse;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -75,7 +77,19 @@ public TrazasPorHoras() {
   
   public String setFechaUltima(){
     Sqlresponse r = cFT.select(TABLAID,"Fecha","","ORDER BY \'Fecha\' DESC LIMIT 1" );  
-    this.fecha = (String) r.getRows().get(0).get(0);
+    String mifecha = (String) r.getRows().get(0).get(0);
+    try {  
+      Date b = _d.sdf.parse((String) r.getRows().get(0).get(0));
+      Calendar c = Calendar.getInstance();
+      c.setTime(b);
+      c.add(Calendar.HOUR,-24);
+      mifecha = _d.sdf.format(b);
+      this.fecha = mifecha;
+      return fecha;
+      
+    } catch (ParseException ex) {
+      Logger.getLogger(PasosPorHoras.class.getName()).log(Level.SEVERE, null, ex);
+    }
     return fecha;
   }
 
@@ -83,7 +97,7 @@ public TrazasPorHoras() {
     Conectar conectar = new Conectar();
     try {
       Statement st = conectar.crearSt();
-      //System.out.println("CALL agrupaPasosPorIntervalosNodosSeparados('" + fecha + "','" + _d.sdf.format(Calendar.getInstance().getTime()) + "','" + 60 + "')");
+      Logger.getGlobal().fine("CALL localizaTrazasNodos2('" + fecha + "','" + _d.sdf.format(Calendar.getInstance().getTime()) + "','" + 60 + "')");
       rs = st.executeQuery("CALL localizaTrazasNodos2('" + fecha + "','" + _d.sdf.format(Calendar.getInstance().getTime()) + "','" + 60 + "')");
       
 //Depuración del método

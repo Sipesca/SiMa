@@ -67,7 +67,7 @@ public class PrecidePasoNodo {
     try {
       if(pasos == null){
         try {
-          pasos = cargarDatos();
+          pasos = cargarDatos(0);
         } catch (ParseException ex) {
           Logger.getLogger(PrecidePasoNodo.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -95,7 +95,7 @@ public class PrecidePasoNodo {
     
   }
   
-  Instances cargarDatos() throws ParseException {
+  Instances cargarDatos(int hora) throws ParseException {
     //Declaramos los atributos de las instancias
     Attribute a0 = new Attribute("Intervalo", "yyyy-MM-dd HH:mm:ss");
     Attribute a1 = new Attribute("Total");
@@ -109,7 +109,7 @@ public class PrecidePasoNodo {
 
     //Instanciamos conexion con FT
     cFT = new conectarFusionTables();
-    Sqlresponse r = cFT.select(TABLAID, "Intervalo, Total", "idNodo = " + nodo + " and ", "ORDER BY \'Intervalo\' DESC LIMIT 10000");
+    Sqlresponse r = cFT.select(TABLAID, "Intervalo, Total", "idNodo = " + nodo + " and Intervalo ENDS WITH '00:00:00'", "ORDER BY \'Intervalo\' DESC LIMIT 10000");
 
     for (List<Object> a : r.getRows()) {
       Instance i = new DenseInstance(2);
@@ -117,7 +117,7 @@ public class PrecidePasoNodo {
       String s0 = (String) a.get(0);
       String s1 = (String) a.get(1);
 
-      //System.err.println(s0 + " ->" + s1);
+      System.err.println(s0 + " ->" + s1);
 
       i.setValue(instances.attribute(0), instances.attribute(0).parseDate(s0));
       i.setValue(instances.attribute(1), Integer.parseInt(s1));

@@ -8,11 +8,13 @@ import SincronizarFusionTables.ActualizadorFT;
 import Entorno.Configuracion.Config;
 import Entorno.Depuracion.Debug;
 import Entorno.Estadisticas.Estadisticas;
+import Prediccion.Prediccion;
 import java.io.IOException;
 import java.util.logging.FileHandler;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 import java.util.logging.XMLFormatter;
+import util.TwitterAgente;
 
 
 /**
@@ -59,10 +61,13 @@ public class SiMa {
     _d.generarConfiguracion();
     Logger.getGlobal().info("Comenzando ejecución. Configuración Cargada.");
     
+   //Prediccion p = new Prediccion("1351591800440");
+   //p.start();   
    
-    
+   Thread.currentThread().setName("Sipesca - Proceso principal");
+   
     tg = Thread.currentThread().getThreadGroup();
-    
+
     _actualizarDB = new ActualizadorDBLocal(_c.get("data.ultimo"));
     _actualizarFT = new ActualizadorFT();
 
@@ -73,12 +78,13 @@ public class SiMa {
     _actualizarFT.start(); 
     
 
-    //TwitterAgente _t = new TwitterAgente();
-    //_t.publicar("Seguímos haciendo pruebas, ahora con la codificación de caractéres. Ñadú. Perdón por las molestias.");
+    TwitterAgente _t = new TwitterAgente();
+    _t.publicar("Seguímos haciendo pruebas, En el envío de información automática. Perdón por las molestias.");
 
       try {
       //_actualizarFT.join();
-      _actualizarDB.join();
+      _actualizarDB.join(); // ----- DESCOMENTAR ANTES DE LANZAR
+        //p.join();
       } catch (InterruptedException ex) {
       Logger.getGlobal().severe("Apocalipsis " + ex.getMessage());
       }

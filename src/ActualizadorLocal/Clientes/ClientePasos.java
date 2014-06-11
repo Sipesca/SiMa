@@ -90,11 +90,15 @@ public class ClientePasos {
   }
 
   public void createWebResource(String node) {
-    query = "https://cityanalytics.net/restapi/rawdataservice/"
+
+    query = "http://cityanalytics.net/restapi/rawdataservice/"
             + node + "/pasos?user=" + queryParamValues[0] + "&pass=" + queryParamValues[1] + "&start="
             + queryParamValues[3] + "&end="
             + queryParamValues[2];
-    webResource = client.resource("https://cityanalytics.net/restapi/rawdataservice/"
+
+    //System.err.println(query);
+
+    webResource = client.resource("http://cityanalytics.net/restapi/rawdataservice/"
             + node + "/pasos?user=" + queryParamValues[0] + "&pass=" + queryParamValues[1] + "&start="
             + queryParamValues[3] + "&end="
             + queryParamValues[2]);
@@ -117,7 +121,7 @@ public class ClientePasos {
 
       for (int i = 0; i < lista.size(); i++) {
         if (i % MAX_CACHE_SIZE == 0) {
-          Logger.getGlobal().log(Level.FINE,"Procesando Pasos. Lote " + conta + " de " + lotes);
+          Logger.getGlobal().log(Level.FINE, "Procesando Pasos. Lote " + conta + " de " + lotes);
           conta++;
         }
         Long a0 = (Long) ((JSONObject) lista.get(i)).get("idNodo");
@@ -137,6 +141,7 @@ public class ClientePasos {
 
   }
 
+  @Deprecated
   public void procesarDatosSplit(String datos) throws SQLException {
 
     String datosAInsertar = "";
@@ -225,55 +230,62 @@ public class ClientePasos {
           procesada = false;
           intentos++;
           if (intentos > MAX_ERRORES_PARA_NOTIFICACION) {
-            Logger.getGlobal().log(Level.WARNING,"Error hebra " + this.getId() + " sincronización con DB Error " + ex.getErrorCode() + " Se intentará nuevamente (" + intentos + ")");
+            Logger.getGlobal().log(Level.WARNING, "Aviso hebra " + this.getId() + " no ha sincronizado aún con DB. Código " + ex.getErrorCode() + " Se intentará nuevamente en " +(TIME_SLEEP_IN_ERROR * intentos * (int) Math.log(Conectar.current_conections))/1000 +  " segundos (Intentos: " + intentos + ")[Cache:" + cache_size + "][Conexiones: " + Conectar.current_conections + "]"  + "[Hebras: " + l_th.size() + "]");
           }
           try {
-            sleep(TIME_SLEEP_IN_ERROR);
+            //Meter un random
+            sleep(TIME_SLEEP_IN_ERROR * intentos * (int) Math.log(Conectar.current_conections));
           } catch (InterruptedException ex1) {
             Logger.getGlobal().log(Level.SEVERE, "Error durmiendo hebra " + this.getId(), ex1);
           }
 
-        } catch (NullPointerException e) {
-          procesada = false;
-          intentos++;
+        } /*catch (NullPointerException e) {
+         procesada = false;
+         intentos++;
 
-          Logger.getGlobal().log(Level.INFO, "Error hebra " + this.getId() + " no se ha podido conectar a la DB. Se intentará nuevamente (" + intentos + ")");
-          try {
-            sleep(TIME_SLEEP_IN_ERROR);
-          } catch (InterruptedException ex1) {
-            Logger.getGlobal().log(Level.SEVERE, "Error durmiendo hebra " + this.getId(), ex1);
-          }
-        } catch (Exception ex) {
+         Logger.getGlobal().log(Level.INFO, "Error (NULL) hebra " + this.getId() + " no se ha podido conectar a la DB. Se intentará nuevamente (" + intentos + ")[" +cache_size  + "]" + "[" + l_th.size() + "]" );
+         try {
+         sleep(TIME_SLEEP_IN_ERROR);
+         } catch (InterruptedException ex1) {
+         Logger.getGlobal().log(Level.SEVERE, "Error durmiendo hebra " + this.getId(), ex1);
+         }
+         } */ catch (Exception ex) {
           procesada = false;
           intentos++;
-          if (intentos > 0) {
-            Logger.getGlobal().log(Level.INFO,"Error hebra " + this.getId() + " no se ha podido conectar a la DB. Se intentará nuevamente (" + intentos + ")");
+          if (intentos > MAX_ERRORES_PARA_NOTIFICACION) {
+            Logger.getGlobal().log(Level.WARNING, "Aviso hebra " + this.getId() + " no ha podido reservar conexión aún a la DB. Se intentará nuevamente en " + ((int) TIME_SLEEP_IN_ERROR * intentos * (int) Math.log(Conectar.current_conections)/1000) + " segundos (Intentos: " + intentos + ")[Cache:" + cache_size + "][Conexiones: " + Conectar.current_conections + "]"  + "[Hebras: " + l_th.size() + "]");
           }
           try {
-            sleep(TIME_SLEEP_IN_ERROR);
+            sleep((int) TIME_SLEEP_IN_ERROR * intentos * (int) Math.log(Conectar.current_conections));
           } catch (InterruptedException ex1) {
             Logger.getGlobal().log(Level.SEVERE, "Error durmiendo hebra " + this.getId(), ex1);
           }
 
         }
+
+
       } while (!procesada);
+
     }
 
     @Override
     protected void finalize() throws Throwable {
+      //c.cerrar();
       conexion.cerrar();
       super.finalize(); //To change body of generated methods, choose Tools | Templates.
     }
   }
 
   public void syncDB() {
-    try {
-      l_th.add(new threadSyncDB(cache, l_th.size()));
-      l_th.get(l_th.size() - 1).start();
+    if (cache_size != 0) {
+      try {
+        l_th.add(new threadSyncDB(cache, l_th.size()));
+        l_th.get(l_th.size() - 1).start();
 
-    } catch (Exception ex) {
-      Logger.getGlobal().log(Level.SEVERE, "Error sincronización con la DB", ex);
+      } catch (Exception ex) {
+        Logger.getGlobal().log(Level.SEVERE, "Error creando hebra sincronización con la DB", ex);
 
+      }
     }
     cache_size = 0;
     cache = "";
@@ -290,7 +302,7 @@ public class ClientePasos {
     @Override
     public void run() {
       int insertados = 0;
-      Logger.getGlobal().log(Level.FINE,"Escritura Pasos en BD: " + l.size() + " peticiones");
+      Logger.getGlobal().log(Level.FINE, "Escritura Pasos en BD: " + l.size() + " peticiones");
       while (!l.isEmpty()) {
         try {
           l.get(0).join();
@@ -301,9 +313,21 @@ public class ClientePasos {
         }
 
       }
-      Logger.getGlobal().log(Level.FINE,"Escritura Pasos en DB OK. Dispositivos insertados/procesados/: " + insertados + "/" + procesados);
+      Logger.getGlobal().log(Level.FINE, "Escritura Pasos en DB OK. Dispositivos insertados/procesados/: " + insertados + "/" + procesados);
 
     }
+    
+            /**
+         * Función que se encarga de matar a la hebra.
+         * @throws Throwable 
+         */
+        @Override
+        protected void finalize() throws Throwable {
+            conexion.cerrar();
+            l.clear();
+            super.finalize();
+        }
+    
   }
 
   public void close() {

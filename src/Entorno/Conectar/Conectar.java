@@ -16,10 +16,13 @@ import java.util.logging.Logger;
 public class Conectar {
 
     Config _c = new Config();
+    public static int current_conections = 0;
     
-    Connection conn;
+    Connection conn = null;
 
     public Conectar() {
+      if(conn == null){
+      //if(current_conections < 100){
         try {
             //Indicamos el driver y lo instanciamos
             Class.forName("com.mysql.jdbc.Driver").newInstance();
@@ -30,14 +33,21 @@ public class Conectar {
             String pass = _c.get("db.contraseña");
             
             conn = DriverManager.getConnection("jdbc:mysql://"+host+"/"+base,usuario, pass);//el tercer parametro es para el password
-
+            current_conections++;
         } catch (Exception e) {
           Logger.getGlobal().log(Level.SEVERE,"Error instanciando conexión a la base de datos", e);
+          conn = null;
         }
+    //}
+    }
     }
 
     public void cerrar() throws SQLException {
+        if(conn != null){
+        current_conections--;
         conn.close();//se cierra la conexión
+        conn = null;
+        }
     }
 
     public Statement crearSt() throws SQLException {

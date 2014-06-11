@@ -20,6 +20,8 @@ import Entorno.Depuracion.Debug;
 import Entorno.Configuracion.Config;
 import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.Client;
+import com.sun.jersey.api.client.ClientResponse;
+import java.util.logging.Logger;
 
 /**
  * Clase encargada de publicaer en twitter y esas cosas
@@ -39,10 +41,11 @@ public class TwitterAgente {
     
     com.sun.jersey.api.client.config.ClientConfig config = new com.sun.jersey.api.client.config.DefaultClientConfig(); // SSL configuration
     client = Client.create(config);
-    
+    Logger.getGlobal().info("Voy a mandar un tweet: "+m);
     _w = client.resource( _c.get("twitter.url") + "?m=" + m.replaceAll(" ","%20"));
-    _w.get(String.class);
-    //System.err.println(_w.;
+//    ClientResponse s = _w.accept("text/plain").get(ClientResponse.class);
+  String s = _w.get(String.class);  
+    System.err.println(s);
   }
   
   
